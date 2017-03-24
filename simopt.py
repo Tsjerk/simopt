@@ -11,7 +11,17 @@
 import __main__ as main
 
 
-class Usage(Exception):
+class SimoptException(Exception):
+    pass
+
+
+class SimoptHelp(SimoptException):
+    """
+    Exception raised to signal that the user required the help with --help.
+    """
+
+
+class Usage(SimoptException):
     def __init__(self, msg, program=getattr(main,"__file__",None)):
         if program:
             self.msg = "{}: {}\nTry '{} --help' for more information.".format(program, msg, program)
@@ -69,14 +79,13 @@ class Options:
     def parse(self, args):
         """Parse the (command-line) arguments."""
 
-        self.help = False
+        options = {}
 
         while args:
             opt = args.pop(0)
                         
             if opt in ("--help","-h"):
-                self.help = True
-                continue
+                return SimoptHelp
             
             if not opt in self._optiondict:
                 raise Usage("Unrecognized option '%s'"%opt)
@@ -98,12 +107,13 @@ class Options:
 
             if typ == bool:
                 # A boolean option is simply set to True if given
-                setattr(self,attr,True)
+                options[attr] = True
             elif multi:
                 # A multi-option adds an item or a tuple to the list
-                getattr(self,attr).append(val[0] if num == 1 else tuple(val))
+                options[attr] = options.get(attr, list())
+                options[attr].append(val[0] if num == 1 else tuple(val))
             else:
                 # Other options just set item or tuple
-                setattr(self,attr,val[0] if num == 1 else tuple(val))
+                options[attr] = val[0] if num == 1 else tuple(val)
 
-        return 
+        return options
