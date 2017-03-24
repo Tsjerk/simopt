@@ -15,7 +15,7 @@ setup(
     author='Tsjerk A. Wassenaar',
     author_email='tsjerkw@gmail.com',
     license='MIT',
-    packages=['simopt'],
+    py_modules=['simopt'],
     install_requires=[
     ],
     #      test_suite='nose.collector',
