@@ -81,6 +81,13 @@ class Options:
 
         options = {}
 
+        # Fill the output dict with the default values
+        for attr, _, _, default, multi, _ in self._optiondict.values():
+            if multi and default is None:
+                options[attr] = []
+            else:
+                options[attr] = default
+
         while args:
             opt = args.pop(0)
                         
