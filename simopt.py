@@ -8,6 +8,7 @@
 
 """
 
+import copy
 import __main__ as main
 
 
@@ -62,37 +63,54 @@ class Options:
         if args:
             self.parse(args)
 
-
-    def __str__(self):
-        """Make a string from the option list"""
-        out = [main.__file__+"\n"]
-
-        for thing in self.options:
-            if type(thing) == str:
-                out.append("     "+thing)
-            else:
-                out.append("     %10s   %s ( %s )"%(thing[0],thing[-1],str(getattr(self,thing[1]))))
-            
-        return "\n".join(out)+"\n"
-
-
-    def parse(self, args):
-        """Parse the (command-line) arguments."""
-
+    def _default_dict(self):
+        """Return a dictionary with the default for each option."""
         options = {}
-
-        # Fill the output dict with the default values
         for attr, _, _, default, multi, _ in self._optiondict.values():
             if multi and default is None:
                 options[attr] = []
             else:
                 options[attr] = default
+        return options
 
+    def __str__(self):
+        """Make a string from the option list.
+        
+        This method defines how the object looks like when converted to string.
+        """
+        return self.help(args=self.args)
+
+    def help(self, args=None):
+        """Make a string from the option list"""
+        out = [main.__file__+"\n"]
+
+        if args is not None:
+            parsed = self.parse(args, ignore_help=True)
+        else:
+            parsed = self._default_dict()
+
+        for thing in self.options:
+            if type(thing) == str:
+                out.append("     "+thing)
+            else:
+                out.append("     %10s   %s ( %s )" % (thing[0], thing[-1], str(parsed[thing[1]])))
+            
+        return "\n".join(out)+"\n"
+
+
+    def parse(self, args, ignore_help=False):
+        """Parse the (command-line) arguments."""
+        options = self._default_dict()
+        
+        # Do not alter the arguments. We may need them later.
+        args = copy.copy(args)
         while args:
             opt = args.pop(0)
                         
             if opt in ("--help","-h"):
-                return SimoptHelp
+                if ignore_help:
+                    continue
+                raise SimoptHelp
             
             if not opt in self._optiondict:
                 raise Usage("Unrecognized option '%s'"%opt)
