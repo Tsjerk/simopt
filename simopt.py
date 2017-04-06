@@ -12,6 +12,9 @@ import copy
 import __main__ as main
 
 
+MULTI = M = 1
+MANDATORY = MA = 2
+
 class SimoptException(Exception):
     pass
 
@@ -37,12 +40,13 @@ class Options:
     A simple option parser. 
     All options are registered in the list __options as tuples consisting of:
 
+        LEVEL       - User level indicator for option
         OPTION      - Option name.
         ATTRIBUTE   - Attribute on this class through which the option is available.
         TYPE        - Type of the value(s).
         NUMBER      - Number of arguments for option.
         DEFAULT     - Default value. 'None' if no default.
-        MULTI       - True/False. If True, allow multiple instances (calls) of the option.
+        FLAGS       - Modify behaviour of option.
         DESCRIPTION - Description of the option.
 
     """
@@ -53,7 +57,7 @@ class Options:
         self.options = options
 
         # Make a dictionary from the option list
-        self._optiondict = dict([(i[0],i[1:]) for i in options if not type(i) == str])
+        self._optiondict = dict([option2tuple(i) for i in options if not type(i) == str])
 
         # Set the options as attributes of this object
         for opt in self._optiondict.values():
@@ -62,6 +66,7 @@ class Options:
         # Parse the arguments, if given
         if args:
             self.parse(args)
+
 
     def _default_dict(self):
         """Return a dictionary with the default for each option."""
@@ -73,6 +78,7 @@ class Options:
                 options[attr] = default
         return options
 
+
     def __str__(self):
         """Make a string from the option list.
         
@@ -80,7 +86,8 @@ class Options:
         """
         return self.help(args=self.args)
 
-    def help(self, args=None):
+
+    def help(self, args=None, userlevel=9):
         """Make a string from the option list"""
         out = [main.__file__+"\n"]
 
@@ -92,7 +99,7 @@ class Options:
         for thing in self.options:
             if type(thing) == str:
                 out.append("     "+thing)
-            else:
+            elif thing[0] <= userlevel:
                 out.append("     %10s   %s ( %s )" % (thing[0], thing[-1], str(parsed[thing[1]])))
             
         return "\n".join(out)+"\n"
@@ -142,3 +149,14 @@ class Options:
                 options[attr] = val[0] if num == 1 else tuple(val)
 
         return options
+
+
+def option2tuple(opt):
+    """Return a tuple of option, taking possible presence of level into account"""
+
+    if isinstance(opt[0], int):
+        tup = opt[1], opt[2:]
+    else:
+        tup = opt[0], opt[1:]
+
+    return tup
