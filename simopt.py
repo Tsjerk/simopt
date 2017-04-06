@@ -24,10 +24,19 @@ class SimoptHelp(SimoptException):
     Exception raised to signal that the user required the help with --help.
     """
 
+
 class MissingMandatoryError(SimoptException):
     """
     Exception raised when a mandatory option is not provided.
     """
+    def __init__(self, missing):
+        self.missing = missing
+
+    def __str__(self):
+        msg = ["Mandatory options were missing from the command line:"]
+        msg.extend(list(self.missing))
+        msg.append("Run with option -h/--help to get the help.")
+        return "\n".join(msg)
 
 
 class Usage(SimoptException):
@@ -36,6 +45,7 @@ class Usage(SimoptException):
             self.msg = "{}: {}\nTry '{} --help' for more information.".format(program, msg, program)
         else:
             self.msg = "Failed to parse options: {}".format(msg)
+
     def __str__(self):
         return self.msg
 
@@ -161,8 +171,9 @@ class Options:
         mandatory = set([ opt 
                           for opt, val in self._optiondict.items() 
                           if (val[4] & MANDATORY)])
-        if mandatory - seen:
-            raise MissingMandatoryError
+        missing = mandatory - seen
+        if not ignore_help and missing:
+            raise MissingMandatoryError(missing)
 
         return options
 
