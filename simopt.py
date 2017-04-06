@@ -24,6 +24,11 @@ class SimoptHelp(SimoptException):
     Exception raised to signal that the user required the help with --help.
     """
 
+class MissingMandatoryError(SimoptException):
+    """
+    Exception raised when a mandatory option is not provided.
+    """
+
 
 class Usage(SimoptException):
     def __init__(self, msg, program=getattr(main,"__file__",None)):
@@ -61,7 +66,7 @@ class Options:
 
         # Set the options as attributes of this object
         for opt in self._optiondict.values():
-            setattr(self,opt[0],([] if not opt[3] else [opt[3]]) if opt[4] else opt[3])
+            setattr(self,opt[0],([] if not opt[3] else [opt[3]]) if (opt[4] & MULTI) else opt[3])
 
         # Parse the arguments, if given
         if args:
@@ -100,7 +105,7 @@ class Options:
             if type(thing) == str:
                 out.append("     "+thing)
             elif thing[0] <= userlevel:
-                out.append("     %10s   %s ( %s )" % (thing[0], thing[-1], str(parsed[thing[1]])))
+                out.append("     %10s   %s ( %s )" % (thing[1], thing[-1], str(parsed[thing[2]])))
             
         return "\n".join(out)+"\n"
 
@@ -109,10 +114,14 @@ class Options:
         """Parse the (command-line) arguments."""
         options = self._default_dict()
         
+        seen = {}
+
         # Do not alter the arguments. We may need them later.
         args = copy.copy(args)
         while args:
             opt = args.pop(0)
+
+            seen.add(opt)
                         
             if opt in ("--help","-h"):
                 if ignore_help:
@@ -147,6 +156,13 @@ class Options:
             else:
                 # Other options just set item or tuple
                 options[attr] = val[0] if num == 1 else tuple(val)
+
+        # All mandatory options should be seen
+        mandatory = set([ opt 
+                          for opt, val in self._optiondict.items() 
+                          if (val[4] & MANDATORY)])
+        if mandatory - seen:
+            raise MissingMandatoryError
 
         return options
 
