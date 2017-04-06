@@ -12,7 +12,7 @@ import copy
 import __main__ as main
 
 
-MULTI = M = 1
+MULTI = MU = 1
 MANDATORY = MA = 2
 
 class SimoptException(Exception):
@@ -141,7 +141,7 @@ class Options:
             if not opt in self._optiondict:
                 raise Usage("Unrecognized option '%s'"%opt)
 
-            attr, typ, num, default, multi, description = self._optiondict[opt]
+            attr, typ, num, default, flags, description = self._optiondict[opt]
 
             if num > len(args):
                 raise Usage("Option '%s' requires %d arguments"%(opt,num))
@@ -159,7 +159,7 @@ class Options:
             if typ == bool:
                 # A boolean option is simply set to True if given
                 options[attr] = True
-            elif multi:
+            elif flags & MULTI:
                 # A multi-option adds an item or a tuple to the list
                 options[attr] = options.get(attr, list())
                 options[attr].append(val[0] if num == 1 else tuple(val))

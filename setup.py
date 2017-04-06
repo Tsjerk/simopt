@@ -12,6 +12,7 @@ setup(
     ],
     keywords='simple option parser',
     url='http://github.com/Tsjerk/simopt',
+    download_url='https://github.com/Tsjerk/simopt/archive/v0.1.tar.gz',
     author='Tsjerk A. Wassenaar',
     author_email='tsjerkw@gmail.com',
     license='MIT',
