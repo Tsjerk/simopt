@@ -114,7 +114,7 @@ class Options:
         """Parse the (command-line) arguments."""
         options = self._default_dict()
         
-        seen = {}
+        seen = set()
 
         # Do not alter the arguments. We may need them later.
         args = copy.copy(args)
