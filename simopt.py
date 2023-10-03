@@ -3,14 +3,29 @@
 
     SIMple OPTion parser for command line options.
     ^^^    ^^^
-
-    (c)2014 T.A. Wassenaar
-
 """
+
+__authors__ = ["Tsjerk A. Wassenaar"]
+__year__ = 2014
+
+
+# Read the version from a file to make sure 
+# that it is consistent with the one in setup.py
+import os
+here = os.path.dirname(__file__)
+try:
+    with open(os.path.join(here, 'VERSION.txt')) as infile:
+        __version__ = infile.readline().strip()
+except:
+    __version__ = "unknown"
+del here
+del os
+
 
 import copy
 import functools
 import __main__ as main
+
 
 
 MULTI = MU = 1
