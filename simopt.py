@@ -9,30 +9,32 @@ __authors__ = ["Tsjerk A. Wassenaar"]
 __year__ = 2014
 
 
-# Read the version from a file to make sure 
+# Read the version from a file to make sure
 # that it is consistent with the one in setup.py
 import os
-here = os.path.dirname(__file__)
-try:
-    with open(os.path.join(here, 'VERSION.txt')) as infile:
-        __version__ = infile.readline().strip()
-except:
-    __version__ = "unknown"
-del here
-del os
-
-
 import copy
 import functools
 import __main__ as main
 
 
+here = os.path.dirname(__file__)
+try:
+    with open(os.path.join(here, 'VERSION.txt'), encoding='UTF-8') as infile:
+        __version__ = infile.readline().strip()
+except FileNotFoundError:
+    __version__ = "unknown"
+del here
+del os
+
 
 MULTI = MU = 1
 MANDATORY = MA = 2
 
+
 class SimoptException(Exception):
-    pass
+    """
+    Generic Simopt Exception Class
+    """
 
 
 class SimoptHelp(SimoptException):
@@ -56,11 +58,14 @@ class MissingMandatoryError(SimoptException):
 
 
 class Usage(SimoptException):
+    """
+    Exception raised when invocation is incorrect.
+    """
     def __init__(self, msg, program=getattr(main,"__file__",None)):
         if program:
-            self.msg = "{}: {}\nTry '{} --help' for more information.".format(program, msg, program)
+            self.msg = f"{program}: {msg}\nTry '{program} --help' for more information."
         else:
-            self.msg = "Failed to parse options: {}".format(msg)
+            self.msg = f"Failed to parse options: {msg}"
 
     def __str__(self):
         return self.msg
@@ -83,24 +88,30 @@ class Options:
     """
 
     def __init__(self, options, args=None):
-        """Set up options object."""
+        """
+        Set up options object.
+        """
 
         self.options = options
 
         # Make a dictionary from the option list
-        self._optiondict = dict([option2tuple(i) for i in options if not type(i) == str])
+        self._optiondict = dict([
+            option2tuple(i) for i in options if not isinstance(i, str)
+        ])
 
         # Set the options as attributes of this object
         for opt in self._optiondict.values():
-            setattr(self,opt[0],([] if not opt[3] else [opt[3]]) if (opt[4] & MULTI) else opt[3])
+            setattr(self, opt[0], ([] if not opt[3] else [opt[3]]) if (opt[4] & MULTI) else opt[3])
 
         # Parse the arguments, if given
+        self.args = None
         if args:
             self.parse(args)
 
-
-    def _default_dict(self):
-        """Return a dictionary with the default for each option."""
+    def default_dict(self):
+        """
+        Return a dictionary with the default for each option.
+        """
         options = {}
         for attr, _, _, default, multi, _ in self._optiondict.values():
             if multi and default is None:
@@ -111,24 +122,34 @@ class Options:
 
     @property
     def mandatory_arguments(self):
-        return set([opt
-                    for opt, val
-                    in self._optiondict.items()
-                    if (val[4] & MANDATORY)])
+        """
+        Return the set of mandatory options defined.
+        """
+        return {
+            opt
+            for opt, val
+            in self._optiondict.items()
+            if val[4] & MANDATORY
+        }
 
     @property
     def mandatory_keys(self):
-        return set([val[0]
-                    for val in self._optiondict.values()
-                    if val[4] & MANDATORY])
+        """
+        Return the set of keys corresponding to mandatory options.
+        """
+        return {
+            val[0]
+            for val in self._optiondict.values()
+            if val[4] & MANDATORY
+        }
 
     def __str__(self):
-        """Make a string from the option list.
+        """
+        Make a string from the option list.
 
         This method defines how the object looks like when converted to string.
         """
         return self.help(args=self.args)
-
 
     def help(self, args=None, userlevel=9):
         """Make a string from the option list"""
@@ -137,20 +158,19 @@ class Options:
         if args is not None:
             parsed = self.parse(args, ignore_help=True)
         else:
-            parsed = self._default_dict()
+            parsed = self.default_dict()
 
         for thing in self.options:
-            if type(thing) == str:
+            if isinstance(thing, str):
                 out.append("     "+thing)
             elif thing[0] <= userlevel:
-                out.append("     %10s   %s ( %s )" % (thing[1], thing[-1], str(parsed[thing[2]])))
+                out.append(f"     {thing[1]:10}   {thing[-1]} ( {parsed[thing[2]]} )")
 
         return "\n".join(out)+"\n"
 
-
     def parse(self, args, ignore_help=False):
         """Parse the (command-line) arguments."""
-        options = self._default_dict()
+        options = self.default_dict()
 
         seen = set()
 
@@ -167,19 +187,19 @@ class Options:
                 raise SimoptHelp
 
             if not opt in self._optiondict:
-                raise Usage("Unrecognized option '%s'"%opt)
+                raise Usage(f"Unrecognized option '{opt}'")
 
             attr, typ, num, default, flags, description = self._optiondict[opt]
 
             if num > len(args):
-                raise Usage("Option '%s' requires %d arguments"%(opt,num))
+                raise Usage(f"Option '{opt}' requires {num} arguments")
 
             if num:
                 a = args.pop(0)
                 try:
                     val = [typ(a) for i in range(num)]
-                except ValueError:
-                    raise Usage("Invalid argument to option '%s': %s"%(opt,repr(a)))
+                except ValueError as exc:
+                    raise Usage(f"Invalid argument to option '{opt}': {repr(a)}") from exc
             else:
                 # Boolean flag
                 val = [True]
@@ -189,7 +209,7 @@ class Options:
                 options[attr] = True
             elif flags & MULTI:
                 # A multi-option adds an item or a tuple to the list
-                options[attr] = options.get(attr, list())
+                options[attr] = options.get(attr, [])
                 options[attr].append(val[0] if num == 1 else tuple(val))
             else:
                 # Other options just set item or tuple
@@ -278,20 +298,18 @@ def opt_func(options, check_mandatory=True):
         @functools.wraps(func)
         def wrap(*args, **kwargs):
             if args:
-                raise TypeError('{0.__name__}() takes 0 positional arguments '
-                                'but {1} was given'.format(func, len(args)))
+                raise TypeError(f'{func.__name__}() takes 0 positional arguments '
+                                'but {len(args)} was given')
             keys = set(kwargs.keys())
             missing = options.mandatory_keys - keys
             if missing and check_mandatory:
-                raise TypeError('{0.__name__}() is missing the following '
-                                'mandatory keyword arguments: {1}'
-                                .format(func, ', '.join(missing)))
-            arguments = options._default_dict()
+                raise TypeError(f'{func.__name__}() is missing the following '
+                                'mandatory keyword arguments: {', '.join(missing)}')
+            arguments = options.default_dict()
             unknown = keys - set(arguments.keys())
             if unknown:
-                raise TypeError('{0.__name__}() received the following '
-                                'unexpected arguments: {1}'
-                                .format(func, ', '.join(unknown)))
+                raise TypeError(f'{func.__name__}() received the following '
+                                'unexpected arguments: {', '.join(unknown)}')
             arguments.update(**kwargs)
             return func(**arguments)
         return wrap
