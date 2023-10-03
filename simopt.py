@@ -92,7 +92,19 @@ class Options:
         Set up options object.
         """
 
-        self.options = options
+        if isinstance(options, (list, tuple)):
+            self.options = options[:]
+        elif isinstance(options, str):
+            if '\n' in options:
+                self.options = options.split('\n')
+            else:
+                try:
+                    with open(options, encoding='UTF-8') as optfile:
+                        self.options = optfile.readlines()
+                except FileNotFoundError as exc:
+                    raise TypeError('Invalid source for option list.') from exc
+        else:
+            raise TypeError('Invalid source for option list.')
 
         # Make a dictionary from the option list
         self._optiondict = dict([
