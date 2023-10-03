@@ -1,8 +1,13 @@
 from setuptools import setup
 
+# Read the version from a file to be sure it is consistent with the version
+# in the package
+with open('VERSION.txt') as infile:
+    version = infile.readline().strip()
+
 setup(
     name='simopt',
-    version='0.1',
+    version=version,
     description='SIMple OPTion parser',
     long_description=open("README.md").read(),
     classifiers=[
